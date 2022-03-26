@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Add multiple geometries from one GeoJSON source</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://unpkg.com/maplibre-gl@2.1.7/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@2.1.7/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        var map = new maplibregl.Map({
+            container: 'map',
+            style:
+                'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+            center: { lng: 115.75659550492992, lat: -32.07100621355343 },
+            zoom: 16
+        });
+
+        map.on('load', function () {
+
+            fetch("data/sampleData.json")
+                .then(data => data.json())
+                .then(json => {
+                    console.log('json', json);
+                    map.getSource("circleData").setData(json)
+                })
+
+            map.addSource('circleData', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'FeatureCollection',
+                    'features': []
+                }
+            });
+
+            map.addLayer({
+                'id': 'points',
+                'type': 'circle',
+                'source': 'circleData',
+                'paint': {
+                    'circle-radius': 6,
+                    'circle-color': '#B42222'
+                },
+                'filter': ['==', '$type', 'Point']
+            });
+
+
+            map.on('click', 'points', function (e) {
+
+                const { popupContent, var1, var2 } = e.features[0].properties;
+                const text = `<div>
+                    <div>${popupContent}</div>
+                    <div>${var1}</div>
+                    <div>${var2}</div>
+                </div>`
+
+                new maplibregl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(text)
+                    .addTo(map);
+            });
+
+            // Change the cursor to a pointer when the mouse is over the states layer.
+            map.on('mouseenter', 'points', function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            // Change it back to a pointer when it leaves.
+            map.on('mouseleave', 'points', function () {
+                map.getCanvas().style.cursor = '';
+            });
+        });
+    </script>
+
+</body>
+
+</html>
