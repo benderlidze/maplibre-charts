@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>Google Maps Multiple Markers</title>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<style>
+    body,
+    html {
+        height: 100%;
+        width: 100%;
+        padding: 0px;
+        margin: 0px;
+    }
+
+    div#content {
+        width: 100%;
+        height: 100%;
+    }
+
+    #info-pane {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 400;
+        padding: 1em;
+
+        background: white;
+        border: 1px;
+        opacity: 90%;
+    }
+</style>
+
+<body>
+    <div id="map" style="width: 100%; height: 100%;"></div>
+    <div id="info-pane">
+        <div id="myDiv"></div>
+    </div>
+    <script type="text/javascript">
+
+
+
+        function initMap() {
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 18,
+                center: {
+                    "lat": -32.07032847191096,
+                    "lng": 115.75678023587126
+                },
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+            });
+
+            const legend = document.getElementById("legend");
+            map.controls[google.maps.ControlPosition.LEFT_TOP].push(legend);
+
+            fetch("data/sampleData.json")
+                .then(i => i.json())
+                .then(data => {
+
+                    console.log('data', data);
+
+                    data.features.map(m => {
+
+                        console.log('m', m.geometry.coordinates);
+                        const [lng, lat] = m.geometry.coordinates
+
+                        const color = () => {
+                            if (+m.properties.var1 > 0.8) return 'red';
+                            if (+m.properties.var1 > 0.5) return 'blue';
+                            return 'green'
+                        }
+
+
+                        const marker = new google.maps.Marker({
+                            position: new google.maps.LatLng(lat, lng),
+                            sName: "Marker Name",
+                            map: map,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 8.5,
+                                fillColor: color(),
+                                fillOpacity: 1,
+                                strokeWeight: 1
+                            },
+                        });
+
+                        var infoWindow = new google.maps.InfoWindow({
+                            content: `
+                                <div>${m.properties.popupContent}</div>
+                                <div>${m.properties.var1}</div>
+                            `
+                        });
+
+                        google.maps.event.addListener(marker, 'click', function () {
+                            infoWindow.open(map, marker);
+                        });
+
+
+                        return marker;
+
+                    });
+
+
+                })
+        }
+
+
+        // CHARTS
+
+        function rand() {
+            return Math.random();
+        }
+
+        // limit values to
+        function clampMin(val, min) {
+            return Math.max(val, min)
+        }
+
+        var time = new Date();
+        var y1 = rand(); // current y value readings
+        var y2 = rand();
+
+        var data1 = {
+            x: [time],
+            y: [y1],
+            mode: 'lines', name: 'H2S',
+            line: { color: ' #ECEAD1', shape: 'spline' }
+        }
+
+        var data2 = {
+            x: [time],
+            y: [y2],
+            //xaxis: 'x2',
+            //yaxis: 'y2',
+            mode: 'lines', name: 'CO',
+            line: { color: '#FB5B05', shape: 'spline' }
+        };
+
+        var layout = {
+            // title:'title',
+            autosize: false,
+            paper_bgcolor: '#C0DCE0',
+            plot_bgcolor: '#C0DCE0',
+            margin: { l: 35, b: 20, t: 20, pad: 4 },
+            width: "100%",
+            height: "100%",
+            autoscale: true,
+            xaxis: { type: 'date', domain: [0, 1], tickangle: 30, tickformat: "%H:%M:%S" },
+            yaxis: { domain: [0.3, 1] },
+            //xaxis2: {type: 'date',    anchor: 'y2',    domain: [0, 1]  },
+            // yaxis2: {anchor: 'x2',    domain: [0, 0.4]},
+        }
+
+        var data = [data1, data2];
+
+        Plotly.newPlot('myDiv', data, layout, { displayModeBar: false, responsive: true });
+
+        //var cnt = 0;
+
+        var interval = setInterval(function () {
+
+            var time = new Date();
+            y1 = clampMin(y1 + (rand() - 0.5) / 10, 0);
+            y2 = clampMin(y2 + (rand() - 0.5) / 10, 0);
+            // create single new data point on both data series
+            var update = {
+                x: [[time], [time]],
+                y: [[y1], [y2]]
+            }
+
+            // new x axis (time) range 
+            var olderTime = time.setMinutes(time.getMinutes() - 1);
+            var futureTime = time.setMinutes(time.getMinutes() + 1);
+
+            var minuteView = {
+                xaxis: {
+                    type: 'date',
+                    range: [olderTime, futureTime], tickangle: 30, tickformat: "%H:%M:%S"
+                },
+                // xaxis2: {
+                //     type: 'date',
+                //     range: [olderTime,futureTime],  showticklabels: false
+                //   }
+            };
+
+            Plotly.relayout('myDiv', minuteView);  // re-layout will change any of the parameters in the supplied params structure (minuteview)
+            Plotly.extendTraces('myDiv', update, [0, 1]) // add single data record to both traces
+
+            //if(++cnt === 100) clearInterval(interval);
+        }, 1000);
+
+// End Chart
+
+
+
+    </script>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjxBU2Rmj9czK28LqDbXvQIp5ccel9iwE&callback=initMap&libraries=places,drawing,geometry&v=weekly"
+        async></script>
+</body>
+
+</html>
