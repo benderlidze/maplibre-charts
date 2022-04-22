@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>MapBoxTest1_3D</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js"></script>
+
+  <!-- Plotly for charting -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    #popup {
+      background: #C0DCE0;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .chart-container {}
+
+    #info-pane {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 400;
+      padding: 1em;
+      background: white;
+      border: 1px;
+      opacity: 90%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="map"></div>
+  <div id="info-pane" class="leaflet-bar chart-container">
+    <div id="myDiv"></div>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiamFjay1wZWFyc29uIiwiYSI6ImNqeXh1NDN4NzFleXgzb29iNGVwdWEzNzEifQ.GwEP3Lmx9TbHQaiU-qQg-w';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      zoom: 11,
+      center: [116.162667, -33.911331],
+      pitch: 75,
+      bearing: 0,
+      //style: 'mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y'
+      style: 'mapbox://styles/mapbox/satellite-v9'
+    });
+
+    map.on('load', () => {
+
+      /*
+      var layers = {
+          Streets: mapboxgl.styleLayer('mapbox://styles/mapbox/streets-v11'),
+          Light: mapboxgl.styleLayer('mapbox://styles/mapbox/light-v10'),
+          Satellite: mapboxgl.styleLayer('mapbox://styles/mapbox/satellite-v9')
+        };
+  
+      layers.Streets.addTo(map);
+      mapboxgl.control.layers(layers).addTo(map);
+  */
+
+      map.addSource('mapbox-dem', {
+        'type': 'raster-dem',
+        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        'tileSize': 512,
+        'maxzoom': 14
+      });
+      // add the DEM source as a terrain layer with exaggerated height
+      map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+
+      // add a sky layer that will show when the map is highly pitched
+      map.addLayer({
+        'id': 'sky',
+        'type': 'sky',
+        'paint': {
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [0.0, 0.0],
+          'sky-atmosphere-sun-intensity': 15
+        }
+      });
+
+      const query = { QueryType: "location_geojson" };
+      const url = 'https://dyfot08hed.execute-api.ap-southeast-2.amazonaws.com/prod/dwerpoll_query'
+      fetch(url, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'Big1wUNGj49hYj540IVxIaKXu3fOwJW38oHldz5h'
+        },
+        body: JSON.stringify(query)
+      })
+        .then(data => data.json())
+        .then(json => {
+          console.log('json', json);
+          map.getSource("circleData").setData(json)
+        })
+
+      map.addSource('circleData', {
+        'type': 'geojson',
+        'data': {
+          'type': 'FeatureCollection',
+          'features': []
+        }
+      });
+
+      map.addLayer({
+        'id': 'points',
+        'type': 'circle',
+        'source': 'circleData',
+        'paint': {
+          'circle-radius': 8,
+          'circle-color': [
+            'case',
+            ['>', ["get", "var1"], 0.8], '#ff0000',
+            ['>', ["get", "var1"], 0.5], '#0000ff',
+            '#00ff00'
+          ],
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "black"
+        },
+        'filter': ['==', '$type', 'Point']
+      });
+
+      // Events			
+      map.on('click', 'points', function (e) {
+
+        const featProps = e.features[0].properties;
+        const text = `<div id="popup">
+                    <div>${e.features[0].id}</div>
+                    <div>Var1:${featProps.var1}</div>
+                    <div>Var2:${featProps.var2}</div>
+                </div>`
+
+        new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(text)
+          .addTo(map);
+      });
+
+      // other click
+      /*
+      map.on('click', function(e) {
+        var coordinates = e.lngLat;
+        new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML('you clicked here: <br/>' + coordinates)
+        .addTo(map);
+      });
+      */
+
+      // Change the cursor to a pointer when the mouse is over the states layer.
+      map.on('mouseenter', 'points', function () {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      // Change it back to a pointer when it leaves.
+      map.on('mouseleave', 'points', function () {
+        map.getCanvas().style.cursor = '';
+      });
+
+    });
+
+
+    // CHARTS
+
+
+    function rand() {
+      return Math.random();
+    }
+
+    // limit values to
+    function clampMin(val, min) {
+      return Math.max(val, min)
+    }
+
+    var time = new Date();
+    var y1 = rand(); // current y value readings
+    var y2 = rand();
+
+    var data1 = {
+      x: [time],
+      y: [y1],
+      mode: 'lines', name: 'H2S',
+      line: { color: ' #ECEAD1', shape: 'spline' }
+    }
+
+    var data2 = {
+      x: [time],
+      y: [y2],
+      mode: 'lines', name: 'CO',
+      line: { color: '#FB5B05', shape: 'spline' }
+    };
+
+    var layout = {
+      // title:'title',
+      autosize: false,
+      paper_bgcolor: '#C0DCE0',
+      plot_bgcolor: '#C0DCE0',
+      margin: { l: 35, b: 20, t: 20, pad: 4 },
+      width: 500,
+      height: 350,
+      autoscale: true,
+      xaxis: { type: 'date', domain: [0, 1], tickangle: 30, tickformat: "%H:%M:%S" },
+      yaxis: { domain: [0.3, 1] },
+    }
+
+    var data = [data1, data2];
+
+    Plotly.newPlot('myDiv', data, layout, { displayModeBar: false, responsive: true });
+
+
+    var interval = setInterval(function () {
+
+      var time = new Date();
+      y1 = clampMin(y1 + (rand() - 0.5) / 10, 0);
+      y2 = clampMin(y2 + (rand() - 0.5) / 10, 0);
+      // create single new data point on both data series
+      var update = {
+        x: [[time], [time]],
+        y: [[y1], [y2]]
+      }
+
+      // new x axis (time) range 
+      var olderTime = time.setMinutes(time.getMinutes() - 1);
+      var futureTime = time.setMinutes(time.getMinutes() + 1);
+
+      var minuteView = {
+        xaxis: {
+          type: 'date',
+          range: [olderTime, futureTime], tickangle: 30, tickformat: "%H:%M:%S"
+        },
+      };
+
+      Plotly.relayout('myDiv', minuteView);  // re-layout will change any of the parameters in the supplied params structure (minuteview)
+      Plotly.extendTraces('myDiv', update, [0, 1]) // add single data record to both traces
+
+    }, 1000);
+
+      // End Chart
+  </script>
+
+</body>
+
+</html>
