@@ -99,30 +99,35 @@
         }
       });
 
-      const query = { QueryType: "location_geojson" };
-      const url = 'https://dyfot08hed.execute-api.ap-southeast-2.amazonaws.com/prod/dwerpoll_query'
-      fetch(url, {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': 'Big1wUNGj49hYj540IVxIaKXu3fOwJW38oHldz5h'
-        },
-        body: JSON.stringify(query)
-      })
-        .then(data => data.json())
-        .then(json => {
-          console.log('json', json);
-          map.getSource("circleData").setData(json)
-
-
-          var bounds = new mapboxgl.LngLatBounds();
-          json.features.forEach(function (feature) {
-            bounds.extend(feature.geometry.coordinates);
-          });
-          map.fitBounds(bounds, { padding: 150 });
-
-
+      function updateData(fitbounds = false) {
+        const query = { QueryType: "location_geojson" };
+        const url = 'https://dyfot08hed.execute-api.ap-southeast-2.amazonaws.com/prod/dwerpoll_query'
+        fetch(url, {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'Big1wUNGj49hYj540IVxIaKXu3fOwJW38oHldz5h'
+          },
+          body: JSON.stringify(query)
         })
+          .then(data => data.json())
+          .then(json => {
+            console.log('json', json);
+            map.getSource("circleData").setData(json)
+
+            var bounds = new mapboxgl.LngLatBounds();
+            json.features.forEach(function (feature) {
+              bounds.extend(feature.geometry.coordinates);
+            });
+            map.fitBounds(bounds, { padding: 150 });
+          })
+      }
+
+      updateData()
+      setInterval(() => {
+        updateData()
+      }, 10000)
+
 
       map.addSource('circleData', {
         'type': 'geojson',
