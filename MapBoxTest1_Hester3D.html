@@ -113,6 +113,15 @@
         .then(json => {
           console.log('json', json);
           map.getSource("circleData").setData(json)
+
+
+          var bounds = new mapboxgl.LngLatBounds();
+          json.features.forEach(function (feature) {
+            bounds.extend(feature.geometry.coordinates);
+          });
+          map.fitBounds(bounds, { padding: 150 });
+
+
         })
 
       map.addSource('circleData', {
@@ -131,8 +140,8 @@
           'circle-radius': 8,
           'circle-color': [
             'case',
-            ['>', ["get", "var1"], 0.8], '#ff0000',
-            ['>', ["get", "var1"], 0.5], '#0000ff',
+            ['>', ["get", "pm10"], 0.8], '#ff0000',
+            ['>', ["get", "pm10"], 0.5], '#0000ff',
             '#00ff00'
           ],
           "circle-stroke-width": 1.5,
@@ -146,9 +155,11 @@
 
         const featProps = e.features[0].properties;
         const text = `<div id="popup">
-                    <div>${e.features[0].id}</div>
-                    <div>Var1:${featProps.var1}</div>
-                    <div>Var2:${featProps.var2}</div>
+                    <div><b>CO</b>:${featProps.co}</div>
+                    <div><b>HS2</b>:${featProps.hs2}</div>
+                    <div><b>pm10</b>:${featProps.pm10}</div>
+                    <div><b>vehicle</b>:${featProps.vehicle}</div>
+                    <div><b>location_id</b>:${featProps.location_id}</div>
                 </div>`
 
         new mapboxgl.Popup()
