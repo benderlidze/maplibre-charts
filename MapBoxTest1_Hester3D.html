@@ -100,7 +100,7 @@
       });
 
       function updateData(fitbounds = false) {
-        const query = { QueryType: "location_geojson" };
+        const query = { query_type: "location_geojson" };
         const url = 'https://dyfot08hed.execute-api.ap-southeast-2.amazonaws.com/prod/dwerpoll_query'
         fetch(url, {
           method: "POST",
@@ -123,9 +123,72 @@
           })
       }
 
+      function updateChartsData(fitbounds = false) {
+        const query = { query_type: "latest_readings" };
+        const url = 'https://dyfot08hed.execute-api.ap-southeast-2.amazonaws.com/prod/dwerpoll_query'
+        fetch(url, {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'Big1wUNGj49hYj540IVxIaKXu3fOwJW38oHldz5h'
+          },
+          body: JSON.stringify(query)
+        })
+          .then(data => data.json())
+          .then(json => {
+            console.log('json', json);
+
+            const pm10 = {
+              x: [],
+              y: [],
+              mode: 'lines', name: 'PM10',
+              line: { color: ' #ECEAD1', shape: 'spline' }
+            }
+
+            const co = {
+              x: [], //time
+              y: [], //value
+              mode: 'lines', name: 'CO',
+              line: { color: '#FB5B05', shape: 'spline' }
+            };
+
+            json.forEach(data => {
+              const date = new Date(data.datetime)
+              pm10.x.push(date)
+              co.x.push(date)
+              pm10.y.push(data.pm10)
+              co.y.push(data.co)
+            })
+
+            console.log('pm10', pm10);
+            console.log('co', co);
+
+            var layout = {
+              // title:'title',
+              autosize: false,
+              paper_bgcolor: '#C0DCE0',
+              plot_bgcolor: '#C0DCE0',
+              margin: { l: 35, b: 20, t: 20, pad: 4 },
+              width: 500,
+              height: 350,
+              autoscale: true,
+              xaxis: { type: 'date', domain: [0, 1], tickangle: 30, tickformat: "%H:%M:%S" },
+              yaxis: { domain: [0.3, 1] },
+            }
+
+            const data = [pm10, co];
+            console.log('data', data);
+            Plotly.newPlot('myDiv', data, layout, { displayModeBar: false, responsive: true });
+
+          })
+      }
+
+      updateChartsData()
       updateData()
+
       setInterval(() => {
         updateData()
+        updateChartsData()
       }, 10000)
 
 
@@ -199,7 +262,7 @@
 
     // CHARTS
 
-
+    /*
     function rand() {
       return Math.random();
     }
@@ -216,7 +279,7 @@
     var data1 = {
       x: [time],
       y: [y1],
-      mode: 'lines', name: 'H2S',
+      mode: 'lines', name: 'PM10',
       line: { color: ' #ECEAD1', shape: 'spline' }
     }
 
@@ -245,6 +308,7 @@
     Plotly.newPlot('myDiv', data, layout, { displayModeBar: false, responsive: true });
 
 
+    /*
     var interval = setInterval(function () {
 
       var time = new Date();
@@ -256,7 +320,7 @@
         y: [[y1], [y2]]
       }
 
-      // new x axis (time) range 
+      // new x axis (time) range
       var olderTime = time.setMinutes(time.getMinutes() - 1);
       var futureTime = time.setMinutes(time.getMinutes() + 1);
 
@@ -267,11 +331,14 @@
         },
       };
 
+      console.log('mi', minuteView);
+      console.log('mi', update);
+
       Plotly.relayout('myDiv', minuteView);  // re-layout will change any of the parameters in the supplied params structure (minuteview)
       Plotly.extendTraces('myDiv', update, [0, 1]) // add single data record to both traces
 
-    }, 1000);
-
+    }, 10000);
+    */
       // End Chart
   </script>
 
