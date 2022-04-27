@@ -188,9 +188,11 @@
 
       setInterval(() => {
         updateData()
-        updateChartsData()
       }, 10000)
 
+      setInterval(() => {
+        updateChartsData()
+      }, 2000)
 
       map.addSource('circleData', {
         'type': 'geojson',
