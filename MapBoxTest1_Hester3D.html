@@ -113,8 +113,16 @@
           .then(data => data.json())
           .then(json => {
             console.log('json', json);
-            map.getSource("circleData").setData(json)
 
+            if (!json.features) {
+              map.getSource("circleData").setData({
+                'type': 'FeatureCollection',
+                'features': []
+              })
+              return;
+            }
+
+            map.getSource("circleData").setData(json)
             var bounds = new mapboxgl.LngLatBounds();
             json.features.forEach(function (feature) {
               bounds.extend(feature.geometry.coordinates);
@@ -134,9 +142,18 @@
           },
           body: JSON.stringify(query)
         })
-          .then(data => data.json())
+          .then(data => {
+            return data.text()
+          })
+          .then(data => {
+            if (data.trim().length === 0) return [];
+            return data.json()
+          })
           .then(json => {
             console.log('json', json);
+            if (!json || json.length === 0) {
+              return;
+            }
 
             const pm10 = {
               x: [],
