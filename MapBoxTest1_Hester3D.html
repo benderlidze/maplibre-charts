@@ -150,10 +150,7 @@
             return data.json()
           })
           .then(json => {
-            console.log('json', json);
-            if (!json || json.length === 0) {
-              return;
-            }
+
 
             const pm10 = {
               x: [],
@@ -169,13 +166,16 @@
               line: { color: '#FB5B05', shape: 'spline' }
             };
 
-            json.forEach(data => {
-              const date = new Date(data.datetime)
-              pm10.x.push(date)
-              co.x.push(date)
-              pm10.y.push(data.pm10)
-              co.y.push(data.co)
-            })
+            console.log('json', json);
+            if (json && json.length > 0) {
+              json.forEach(data => {
+                const date = new Date(data.datetime)
+                pm10.x.push(date)
+                co.x.push(date)
+                pm10.y.push(data.pm10)
+                co.y.push(data.co)
+              })
+            }
 
             console.log('pm10', pm10);
             console.log('co', co);
