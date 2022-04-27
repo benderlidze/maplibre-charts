@@ -147,7 +147,7 @@
           })
           .then(data => {
             if (data.trim().length === 0) return [];
-            return data.json()
+            return JSON.parse(data)
           })
           .then(json => {
 
