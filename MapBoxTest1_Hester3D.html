@@ -25,7 +25,7 @@
     }
 
     #popup {
-      background: #C0DCE0;
+      background: whitesmoke;
       color: #000000;
       margin: 0;
       padding: 0;
@@ -41,7 +41,7 @@
       padding: 1em;
       background: white;
       border: 1px;
-      opacity: 90%;
+      opacity: 80%;
     }
   </style>
 </head>
@@ -54,17 +54,29 @@
   </div>
 
   <script>
+
+    const chartDiv = document.getElementById("info-pane");
+    var initial_longitude = 117.8000000;
+    var initial_latitude = -33.0000000;
+    var initial_pitch = 75;
+    var initial_zoom = 7;
+    var initial_bearing = 0;
+
     mapboxgl.accessToken = 'pk.eyJ1IjoiamFjay1wZWFyc29uIiwiYSI6ImNqeXh1NDN4NzFleXgzb29iNGVwdWEzNzEifQ.GwEP3Lmx9TbHQaiU-qQg-w';
 
     const map = new mapboxgl.Map({
       container: 'map',
-      zoom: 11,
-      center: [116.162667, -33.911331],
-      pitch: 75,
-      bearing: 0,
-      //style: 'mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y'
-      style: 'mapbox://styles/mapbox/satellite-v9'
+      zoom: initial_zoom,
+      center: [initial_longitude, initial_latitude],
+      pitch: initial_pitch,
+      bearing: initial_bearing,
+
+      style: 'mapbox://styles/jack-pearson/cl2ld1p9f000015nvwhjq06cd'
     });
+
+    // UI controls
+    map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+    map.addControl(new mapboxgl.FullscreenControl(), 'top-left'); //full screen mode does not display the chart.
 
     const size = 200;
     // This implements `StyleImageInterface`
@@ -88,8 +100,8 @@
         const duration = 1000;
         const t = (performance.now() % duration) / duration;
 
-        const radius = (size / 2) * 0.3;
-        const outerRadius = (size / 2) * 0.7 * t + radius;
+        const radius = (size / 2) * 0.1;
+        const outerRadius = (size / 2) * 0.5 * t + radius;
         const context = this.context;
 
         // Draw the outer circle.
@@ -172,6 +184,7 @@
       });
 
       function updateData(fitbounds = false) {
+        // get point data and attributes from SI API
         const query = { query_type: "location_geojson" };
         const url = 'https://dyfot08hed.execute-api.ap-southeast-2.amazonaws.com/prod/dwerpoll_query'
         fetch(url, {
@@ -185,6 +198,13 @@
           .then(data => data.json())
           .then(json => {
             console.log('PINS', json);
+
+            if (!json || json.length === 0) {
+              initialView()
+              return;
+            }
+
+            chartDiv.style.display = 'inline'
 
             if (!json.features) {
               map.getSource("circleData").setData({
@@ -210,7 +230,7 @@
             json.features.forEach(function (feature) {
               bounds.extend(feature.geometry.coordinates);
             });
-            map.fitBounds(bounds, { padding: 150 });
+            map.fitBounds(bounds, { padding: 50 });
           })
       }
 
@@ -251,11 +271,16 @@
             console.log('json', json);
             if (json && json.length > 0) {
               json.forEach(data => {
-                const date = new Date(data.datetime)
+                // const date = new Date(data.datetime)
+                // pm10.x.push(date)
+                // co.x.push(date)
+                // pm10.y.push(data.pm10)
+                // co.y.push(data.co)
+                const date = new Date()
                 pm10.x.push(date)
                 co.x.push(date)
-                pm10.y.push(data.pm10)
-                co.y.push(data.co)
+                pm10.y.push(Math.random())
+                co.y.push(Math.random())
               })
             }
 
@@ -268,8 +293,8 @@
               paper_bgcolor: '#C0DCE0',
               plot_bgcolor: '#C0DCE0',
               margin: { l: 35, b: 20, t: 20, pad: 4 },
-              width: 500,
-              height: 350,
+              width: 350,
+              height: 200,
               autoscale: true,
               xaxis: { type: 'date', domain: [0, 1], tickangle: 30, tickformat: "%H:%M:%S" },
               yaxis: { domain: [0.3, 1] },
@@ -285,13 +310,16 @@
       updateChartsData()
       updateData()
 
+      // refresh for map data
       setInterval(() => {
         updateData()
-      }, 10000)
+      }, 5000)
 
+      // refresh for chart data
       setInterval(() => {
         updateChartsData()
-      }, 2000)
+      }, 1000)
+
 
       map.addSource('circleData', {
         'type': 'geojson',
@@ -323,7 +351,7 @@
         'type': 'circle',
         'source': 'circleData',
         'paint': {
-          'circle-radius': 8,
+          'circle-radius': 5,
           'circle-color': [
             'case',
             ['>', ["get", "pm10"], 0.8], '#ff0000',
@@ -336,24 +364,73 @@
         'filter': ['==', '$type', 'Point']
       });
 
+      // The 'building' layer in the Mapbox Streets
+      // vector tileset contains building height data
+      // from OpenStreetMap.
+      map.addLayer(
+        {
+          'id': 'add-3d-buildings',
+          'source': 'composite',
+          'source-layer': 'building',
+          'filter': ['==', 'extrude', 'true'],
+          'type': 'fill-extrusion',
+          'minzoom': 15,
+          'paint': {
+            'fill-extrusion-color': '#aaa',
+
+            // Use an 'interpolate' expression to
+            // add a smooth transition effect to
+            // the buildings as the user zooms in.
+            'fill-extrusion-height': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              15,
+              0,
+              15.05,
+              ['get', 'height']
+            ],
+            'fill-extrusion-base': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              15,
+              0,
+              15.05,
+              ['get', 'min_height']
+            ],
+            'fill-extrusion-opacity': 0.8
+          }
+        }
+      );
 
 
-      // Events			
-      map.on('click', 'points', function (e) {
+      // Create a popup, but don't add it to the map yet.
+      const popup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+      });
+
+      // hover on a point	 - display an info popup 
+      map.on('mouseenter', 'points', function (e) {
 
         const featProps = e.features[0].properties;
         const text = `<div id="popup">
-                    <div><b>CO</b>:${featProps.co}</div>
-                    <div><b>HS2</b>:${featProps.hs2}</div>
-                    <div><b>pm10</b>:${featProps.pm10}</div>
-                    <div><b>vehicle</b>:${featProps.vehicle}</div>
-                    <div><b>location_id</b>:${featProps.location_id}</div>
+                    <p><b>CO</b>:${featProps.co}</p>
+                    <p><b>HS2</b>:${featProps.hs2}</p>
+                    <p><b>pm10</b>:${featProps.pm10}</p>
+                    <p><b>vehicle</b>:${featProps.vehicle}</p>
+                    <p><b>location_id</b>:${featProps.location_id}</p>
                 </div>`
-
-        new mapboxgl.Popup()
+        popup
           .setLngLat(e.lngLat)
           .setHTML(text)
           .addTo(map);
+      });
+      // un hover
+      map.on('mouseleave', 'points', () => {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
       });
 
       // other click
@@ -367,7 +444,7 @@
       });
       */
 
-      // Change the cursor to a pointer when the mouse is over the states layer.
+      // Change the cursor to a pointer when the mouse is over the points layer.
       map.on('mouseenter', 'points', function () {
         map.getCanvas().style.cursor = 'pointer';
       });
@@ -377,8 +454,18 @@
         map.getCanvas().style.cursor = '';
       });
 
+
+      // UI Controls
+
     });
 
+    function initialView() {
+      map.setZoom(initial_zoom)
+      map.setCenter([initial_longitude, initial_latitude])
+      map.setPitch(initial_pitch)
+      map.setBearing(initial_bearing)
+      chartDiv.style.display = "none"
+    }
 
     // CHARTS
 
