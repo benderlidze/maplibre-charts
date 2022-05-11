@@ -199,7 +199,7 @@
           .then(json => {
             console.log('PINS', json);
 
-            if (!json || json.length === 0) {
+            if (!json || !json.features || json.features === null || json.length === 0) {
               initialView()
               return;
             }
@@ -269,20 +269,24 @@
             };
 
             console.log('json', json);
+
             if (json && json.length > 0) {
-              json.forEach(data => {
-                // const date = new Date(data.datetime)
-                // pm10.x.push(date)
-                // co.x.push(date)
-                // pm10.y.push(data.pm10)
-                // co.y.push(data.co)
-                const date = new Date()
+              json.splice(-120).forEach(data => { // use only latest 120 elements ~ 2 mins 
+
+                // const now = new Date().getTime()
+                // const dataTime = new Date(data.datetime).getTime()
+                // const diff = (now - dataTime) / 1000 / 60
+                // if (diff > 2) return;
+                //skip data that is ilder than 2 mins 
+
+                const date = new Date(data.datetime)
                 pm10.x.push(date)
                 co.x.push(date)
-                pm10.y.push(Math.random())
-                co.y.push(Math.random())
+                pm10.y.push(data.pm10)
+                co.y.push(data.co)
               })
             }
+
 
             console.log('pm10', pm10);
             console.log('co', co);
@@ -300,8 +304,11 @@
               yaxis: { domain: [0.3, 1] },
             }
 
-            const data = [pm10, co];
-            console.log('data', data);
+            const data = [
+              pm10,
+              co
+            ];
+            console.log('data===>', data);
             Plotly.newPlot('myDiv', data, layout, { displayModeBar: false, responsive: true });
 
           })
@@ -460,6 +467,7 @@
     });
 
     function initialView() {
+      console.log('RESET!!!!!!!!!');
       map.setZoom(initial_zoom)
       map.setCenter([initial_longitude, initial_latitude])
       map.setPitch(initial_pitch)
