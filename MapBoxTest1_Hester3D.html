@@ -196,8 +196,17 @@
           body: JSON.stringify(query)
         })
           .then(data => data.json())
-          .then(json => {
-            console.log('PINS', json);
+          .then(data => {
+
+            console.log('PINS', JSON.stringify(data));
+            console.log('PINS', data);
+
+            //sort array by location_id
+            const json = {
+              "type": "FeatureCollection",
+              "features": data.features.sort((a, b) => a.properties.location_id - b.properties.location_id)
+            }
+
 
             if (!json || !json.features || json.features === null || json.length === 0) {
               initialView()
