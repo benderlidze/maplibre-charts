@@ -270,6 +270,7 @@
             };
 
             console.log('json', json);
+            //console.log('json', JSON.stringify(json));
 
             if (json && json.length > 0) {
               json.splice(-120).forEach(data => { // use only latest 120 elements ~ 2 mins 
@@ -474,6 +475,17 @@
       map.setPitch(initial_pitch)
       map.setBearing(initial_bearing)
       chartDiv.style.display = "none"
+
+      //clear map circles
+      map.getSource('circleData').setData({
+        'type': 'FeatureCollection',
+        'features': []
+      });
+      map.getSource('pulsationData').setData({
+        'type': 'FeatureCollection',
+        'features': []
+      });
+
     }
 
     // CHARTS
