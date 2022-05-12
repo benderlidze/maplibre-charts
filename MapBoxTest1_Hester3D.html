@@ -230,7 +230,8 @@
             json.features.forEach(function (feature) {
               bounds.extend(feature.geometry.coordinates);
             });
-            map.fitBounds(bounds, { padding: 50 });
+
+            if (fitbounds) map.fitBounds(bounds, { padding: 200 });
           })
       }
 
@@ -315,7 +316,7 @@
       }
 
       updateChartsData()
-      updateData()
+      updateData(true)
 
       // refresh for map data
       setInterval(() => {
