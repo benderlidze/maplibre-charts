@@ -198,7 +198,7 @@
           .then(data => data.json())
           .then(data => {
 
-            console.log('PINS', JSON.stringify(data));
+            // console.log('PINS', JSON.stringify(data));
             console.log('PINS', data);
 
             //sort array by location_id
@@ -278,11 +278,12 @@
               line: { color: '#FB5B05', shape: 'spline' }
             };
 
-            console.log('json', json);
-            //console.log('json', JSON.stringify(json));
+            console.log('CHART JSON DATA', json);
+            console.log('json', JSON.stringify(json));
+            const latest = json[json.length - 1]
 
             if (json && json.length > 0) {
-              json.splice(-120).forEach(data => { // use only latest 120 elements ~ 2 mins 
+              [...json].splice(-120).forEach(data => { // use only latest 120 elements ~ 2 mins 
 
                 // const now = new Date().getTime()
                 // const dataTime = new Date(data.datetime).getTime()
@@ -302,6 +303,12 @@
             console.log('pm10', pm10);
             console.log('co', co);
 
+
+            var time = new Date(latest.datetime);
+            var olderTime = time.setMinutes(time.getMinutes() - 2);
+            var futureTime = new Date(latest.datetime);
+
+
             var layout = {
               // title:'title',
               autosize: false,
@@ -311,7 +318,13 @@
               width: 350,
               height: 200,
               autoscale: true,
-              xaxis: { type: 'date', domain: [0, 1], tickangle: 30, tickformat: "%H:%M:%S" },
+              xaxis: {
+                type: 'date',
+                domain: [0, 1],
+                tickangle: 30,
+                tickformat: "%H:%M:%S",
+                ...(json.length > 0 ? { range: [olderTime, futureTime] } : {})
+              },
               yaxis: { domain: [0.3, 1] },
             }
 
@@ -320,6 +333,12 @@
               co
             ];
             console.log('data===>', data);
+
+
+
+
+
+
             Plotly.newPlot('myDiv', data, layout, { displayModeBar: false, responsive: true });
 
           })
