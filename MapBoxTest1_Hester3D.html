@@ -280,7 +280,6 @@
 
             console.log('CHART JSON DATA', json);
             console.log('json', JSON.stringify(json));
-            const latest = json[json.length - 1]
 
             if (json && json.length > 0) {
               [...json].splice(-120).forEach(data => { // use only latest 120 elements ~ 2 mins 
@@ -304,6 +303,7 @@
             console.log('co', co);
 
 
+            const latest = json[json.length - 1]
             var time = new Date(latest.datetime);
             var olderTime = time.setMinutes(time.getMinutes() - 2);
             var futureTime = new Date(latest.datetime);
